@@ -141,3 +141,54 @@ const data = payment.create(new Transaction(info).pix()).unwrap();
 const pix = await data;
 console.log(pix);
 ```
+
+
+# Verificação do status do pagamento
+
+A verificação do check funciona da seguinte forma: Se quando checkado, está PENDENTE, o pagamento ficará verificando até haver qualquer mudança nos status. Quando status transacionar para qualquer outro, teremos algum tipo de retorno.
+
+Se for alterado para o status esperado pelo CHECK, você receberá um Success da SDK.
+
+Se for alterado para qualquer outro status, SE NÃO o esperado, você receberá algum erro no Err.
+
+### Evitando usar o match
+</div>
+
+```ts
+const client = new Client().login("admin");
+const payment = client.payments;
+
+const info = {
+  amount: 2,
+  payer_email: "test@gmail.com"
+};
+
+/*
+  Tenta gerar os dados para criar o pagamento pix.
+  Caso dê algum problema, ele cairá no fail.
+  Caso não, cairá no sucess. 
+*/
+match<PixPayment, string>(Presset.pix(info), {
+  fail(_: string) { console.log(_); },
+
+  success(pix: PixPayment) {
+    /* 
+      Por fim, tenta gerar os dados de pagamento do pix, como
+      QRCode, Copia e cola e mais alguns dados que são necessários
+      para o nosso funcionamento.
+    */
+    match(payment.create<Pix>(pix), {
+      fail(_: string) { console.log(_); },
+
+      async success(data: Promise<Pix>) {
+        const pix: Pix = await data;
+        match(await payments.check(["approved", pix])), {
+          success(_: null) { console.log("Payment approved"); }
+
+          fail(msg: string) { console.log("Ocurred a error: " + msg) }
+        }
+      }
+    })
+  }
+})
+```

@@ -80,6 +80,69 @@ class Payment {
     
     return result;
   }
+
+  public check(info: [string, Pix | Card]): Result<Promise<null>, string> {
+    let result = Result.init<Promise<null>, string>();
+   
+    result.Ok(new Promise(async (resolve) => {
+      const request = await fetch(`${this.__api_url}/payment/get`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization-key": this.__prefix + this.__api_key
+        },
+        body: JSON.stringify({
+          payment_id: info[1].payment_id
+        })
+      });
+
+      const response = await request.json();
+      if( response.code != 200 )
+        {
+          result.Err("Payment not found");
+          resolve (null);
+          return;
+        }
+      
+      const start: string = response.data.status;
+      let rerun: boolean = false;
+      while(rerun)
+        {
+          const request = await fetch(`${this.__api_url}/payment/get`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization-key": this.__prefix + this.__api_key
+            },
+            body: JSON.stringify({
+              payment_id: info[1].payment_id
+            })
+          });
+    
+          const response = await request.json();
+          if( response.data.status != start && response.data.status != info[0] )
+            {
+              result.Err(`Received the '${response.data.status}' status, but has expected '${info[0]}'`);
+              resolve (null);
+              return;
+            }
+          
+          if( response.data.status == info[0] )
+            {
+              resolve (null);
+              return;
+            }
+          
+          await (function (): Promise<null> {
+            return new Promise(resolve => {
+              setTimeout(resolve, 1000 * 5);
+            })
+          })()
+        }
+    }));
+    
+    return result;
+  }
 }
 
 class Transaction {
