@@ -151,7 +151,6 @@ Se for alterado para o status esperado pelo CHECK, você receberá um Success da
 
 Se for alterado para qualquer outro status, SE NÃO o esperado, você receberá algum erro no Err.
 
-### Evitando usar o match
 </div>
 
 ```ts
